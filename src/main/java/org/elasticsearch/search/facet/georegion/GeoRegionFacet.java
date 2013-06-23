@@ -1,5 +1,7 @@
 package org.elasticsearch.search.facet.georegion;
 
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Maps;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -9,17 +11,18 @@ import org.elasticsearch.search.facet.Facet;
 import org.elasticsearch.search.facet.InternalFacet;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
  *
  */
-public class GeoRegionFacet implements InternalFacet {
-    public static final String TYPE = "georegion";
-    private static final String STREAM_TYPE = "georegion";
+public class GeoRegionFacet extends InternalFacet {
 
-    private String name;
+    public static final String TYPE = "georegion";
+    private static final BytesReference STREAM_TYPE = new BytesArray("georegion");
+
     private Map<String, AtomicLong> counts = Maps.newHashMap();
 
 
@@ -29,7 +32,7 @@ public class GeoRegionFacet implements InternalFacet {
 
     static InternalFacet.Stream STREAM = new InternalFacet.Stream() {
         @Override
-        public Facet readFacet(String type, StreamInput in) throws IOException {
+        public Facet readFacet(StreamInput in) throws IOException {
             GeoRegionFacet facet = new GeoRegionFacet();
             facet.readFrom(in);
             return facet;
@@ -39,33 +42,39 @@ public class GeoRegionFacet implements InternalFacet {
     private GeoRegionFacet() {}
 
     public GeoRegionFacet(String name, Map<String, AtomicLong> counts) {
-        this.name = name;
+        super(name);
         this.counts = counts;
     }
 
     @Override
-    public String streamType() {
+    public BytesReference streamType() {
         return STREAM_TYPE;
     }
 
     @Override
-    public String name() {
-        return name;
-    }
+    public Facet reduce(List<Facet> facets) {
+        GeoRegionFacet geoRegionFacet = (GeoRegionFacet) facets.get(0);
 
-    @Override
-    public String getName() {
-        return name();
-    }
+        for (int i = 1 ; i < facets.size() ; i++) {
+            Facet facet = facets.get(i);
+            if (facet instanceof GeoRegionFacet) {
+                GeoRegionFacet regionFacet = (GeoRegionFacet) facet;
+                for (Map.Entry<String, AtomicLong> entry : regionFacet.counts().entrySet()) {
+                    if (geoRegionFacet.counts().containsKey(entry.getKey())) {
+                        geoRegionFacet.counts().get(entry.getKey()).addAndGet(entry.getValue().longValue());
+                    } else {
+                        geoRegionFacet.counts().put(entry.getKey(), entry.getValue());
+                    }
+                }
+            }
+        }
 
-    @Override
-    public String type() {
-        return TYPE;
+        return geoRegionFacet;
     }
 
     @Override
     public String getType() {
-        return type();
+        return TYPE;
     }
 
     public Map<String, AtomicLong> getCounts() {
@@ -78,7 +87,7 @@ public class GeoRegionFacet implements InternalFacet {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        name = in.readString();
+        super.readFrom(in);
 
         long size = in.readVLong();
         for (int i = 0; i < size; i++) {
@@ -88,7 +97,7 @@ public class GeoRegionFacet implements InternalFacet {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(name);
+        super.writeTo(out);
         out.writeVLong(counts.size());
         for (Map.Entry<String, AtomicLong> entry : counts.entrySet()) {
              out.writeString(entry.getKey());
@@ -104,7 +113,7 @@ public class GeoRegionFacet implements InternalFacet {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(name);
+        builder.startObject(getName());
         builder.field(Fields._TYPE, STREAM_TYPE);
         builder.field("counts", counts);
         builder.endObject();

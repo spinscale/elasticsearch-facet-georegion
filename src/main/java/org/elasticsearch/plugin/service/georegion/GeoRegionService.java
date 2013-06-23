@@ -42,11 +42,12 @@ public class GeoRegionService extends AbstractLifecycleComponent<GeoRegionServic
             XContentParser.Token token = null;
             while ((token = parser.nextToken()) != null) {
                 if ("name".equals(parser.text())) {
-                    token = parser.nextToken();
+                    parser.nextToken();
                     countryName = parser.text();
                 } else if ("geometry".equals(parser.text())) {
-                    token = parser.nextToken();
+                    parser.nextToken();
                     try {
+                        // TODO: THIS LOOKS AS IF LAT/LON ARE INDEXED WRONG WAY ROUND
                         Shape shape = GeoJSONShapeParser.parse(parser);
                         shapes.get("countries").put(countryName, shape);
                     } catch (AssertionError e) {

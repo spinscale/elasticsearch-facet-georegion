@@ -21,7 +21,7 @@ import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.plugin.service.georegion.GeoRegionService;
 import org.elasticsearch.plugins.AbstractPlugin;
 import org.elasticsearch.search.facet.FacetModule;
-import org.elasticsearch.search.facet.georegion.GeoRegionFacetProcessor;
+import org.elasticsearch.search.facet.georegion.GeoRegionFacetParser;
 
 import java.util.Collection;
 
@@ -46,7 +46,7 @@ public class GeoRegionFacetPlugin extends AbstractPlugin {
     }
 
     public void onModule(FacetModule facetModule) {
-        facetModule.addFacetProcessor(GeoRegionFacetProcessor.class);
+        facetModule.addFacetProcessor(GeoRegionFacetParser.class);
     }
 
 }

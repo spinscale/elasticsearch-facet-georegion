@@ -149,6 +149,6 @@ public class GeoRegionFacetTest {
                 .setFacets(facetBuilderRef)
                 .execute().actionGet();
 
-        return searchResponse.facets().facet("regions");
+        return searchResponse.getFacets().facet("regions");
     }
 }
